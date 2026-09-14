@@ -9,7 +9,7 @@ import api from '../services/api';
 import { useLobbyStore } from '../stores/lobby';
 import { storeToRefs } from 'pinia'
 
-import { formatToMinutes } from '../utils/dateFilters';
+import { formatToMinutes } from '../utils/dateFilters.js';
 
 import { useTyping } from "@/composables/useTyping";
 
