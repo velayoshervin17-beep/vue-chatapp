@@ -8,14 +8,16 @@ import { createPinia } from "pinia";
 import echo from "@/services/echo";
 import router from "./router/myRouter";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
+import "emoji-mart";
 
 window.Pusher = Pusher;
 
 window.Echo = echo;
 
 const app = createApp(App);
+
 const pinia = createPinia();
-pinia.use(piniaPluginPersistedstate)
+pinia.use(piniaPluginPersistedstate);
 
 app.use(router);
 app.use(pinia);

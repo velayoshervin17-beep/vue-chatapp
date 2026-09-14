@@ -1,9 +1,18 @@
 <script setup>
 import api from '../services/api';
-import { ref, computed } from 'vue';
-import { useTyping } from "@/composables/useTyping";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useLobbyStore } from '../stores/lobby';
 import { storeToRefs } from 'pinia'
+import data from '@emoji-mart/data'
+import { Picker } from 'emoji-mart'
+
+new Picker({
+    data,
+    onEmojiSelect: console.log
+})
+
+const emojiPickerContainer = ref(null);
+
 
 const props = defineProps({
     code: {
@@ -13,12 +22,20 @@ const props = defineProps({
     sender: {
         type: String,
         required: true
+    },
+    sendTyping: {
+        type: Function,
+        required: true
     }
 });
 
 const store = useLobbyStore()
 
 const { lobbyCode, currentParticipant, participants } = storeToRefs(store);
+
+const showEmojiPicker = ref(false);
+const emojiPicker = ref(null);
+const textarea = ref(null);
 
 const MAX_LIMIT = 255
 
@@ -28,9 +45,14 @@ const dbLength = computed(() => message.value.length);
 
 function sendMessage() {
 
+
+    showEmojiPicker.value = false;
+
     api.post(`/api/chat-messages/${props.code}`, {
         message: message.value,
-        sender: props.sender
+        sender: props.sender,
+        participantId: currentParticipant.value.id
+
     }).then(response => {
         console.log('Message sent:', response.data);
         message.value = ''; // Clear the input field after sending
@@ -39,7 +61,74 @@ function sendMessage() {
     });
 }
 
-const { sendTyping } = useTyping(lobbyCode);
+function toggleEmojiPicker() {
+    showEmojiPicker.value = !showEmojiPicker.value;
+
+    if (showEmojiPicker.value) {
+        nextTick(() => {
+            createEmojiPicker();
+        });
+    }
+}
+
+function createEmojiPicker() {
+    if (!emojiPickerContainer.value) {
+        return;
+    }
+
+    // Don't create another picker if one already exists
+    if (emojiPickerContainer.value.children.length > 0) {
+        return;
+    }
+
+    const picker = new Picker({
+        data,
+        onEmojiSelect: handleEmojiClick
+    });
+
+    emojiPickerContainer.value.appendChild(picker);
+}
+
+
+
+function handleEmojiClick(emoji) {
+    const emojiText = emoji.native;
+    const el = textarea.value;
+
+    if (!el) {
+        message.value += emojiText;
+        return;
+    }
+
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+
+    message.value =
+        message.value.slice(0, start) +
+        emojiText +
+        message.value.slice(end)
+
+    // Put cursor immediately after the inserted emoji
+    nextTick(() => {
+        const newPosition = start + emojiText.length;
+
+        el.focus();
+        el.setSelectionRange(newPosition, newPosition);
+    });
+}
+
+watch(showEmojiPicker, async (visible) => {
+    if (!visible) return;
+
+    await nextTick();
+
+    emojiPicker.value?.addEventListener(
+        'emoji-click',
+        handleEmojiClick
+    );
+});
+
+// const { sendTyping } = useTyping(lobbyCode);
 
 let lastTyping = 0;
 
@@ -52,7 +141,7 @@ function handleInput() {
 
     lastTyping = now;
 
-    sendTyping();
+    props.sendTyping();
 }
 
 </script>
@@ -62,9 +151,17 @@ function handleInput() {
     <div class="chat-input">
         <div class="input-wrapper">
             <div class="text-indicator">
+                <div class="emoji-wrapper">
+                    <button type="button" class="emoji-button" @click="toggleEmojiPicker">
+                        😀
+                    </button>
+
+                    <div v-if="showEmojiPicker" ref="emojiPickerContainer" class="emoji-picker"></div>
+                </div>
+
                 <span class="current-count">{{ dbLength }}/{{ MAX_LIMIT }} space used </span>
             </div>
-            <textarea type="text" v-model="message" @input="handleInput" :maxlength="MAX_LIMIT"
+            <textarea type="text" v-model="message" @input="handleInput" :maxlength="MAX_LIMIT" ref="textarea"
                 placeholder="Type your message..." />
         </div>
         <button class="send-button" @click="sendMessage">Send</button>
@@ -90,6 +187,7 @@ function handleInput() {
         box-shadow 0.2s;
 
     display: flex;
+    align-items: center;
 
 }
 
@@ -122,8 +220,11 @@ textarea::placeholder {
 }
 
 .text-indicator {
+
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
 }
 
 .current-count {
@@ -140,7 +241,7 @@ textarea::placeholder {
     border: none;
     border-radius: 12px;
 
-    padding: 11px 18px;
+    padding: 16px 18px;
     cursor: pointer;
     white-space: nowrap;
 
@@ -159,5 +260,24 @@ textarea::placeholder {
 
 button:hover {
     background-color: #f0f0f0;
+}
+
+.emoji-wrapper {
+    position: relative;
+
+}
+
+.emoji-button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.emoji-picker {
+    position: absolute;
+    bottom: 45px;
+    left: 0;
+    z-index: 1000;
 }
 </style>

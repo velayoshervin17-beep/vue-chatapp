@@ -26,7 +26,15 @@ const messages = ref([]);
 
 
 
+// const { typingUsers } = useTyping(lobbyCode);
+
 const { typingUsers, sendTyping } = useTyping(lobbyCode);
+
+
+
+if (typingUsers.value.size > 0) {
+    console.log("user typed");
+}
 
 
 const activeTypersCount = computed(() => {
@@ -63,7 +71,18 @@ const fetchMessages = async () => {
 
     try {
         const response = await api.get(`api/chat-messages/${lobbyCode.value}`);
-        messages.value = response.data;
+
+        messages.value = response.data.filter(msg => {
+            if (
+                msg.message_type === 'event' &&
+                Number(msg.participantId) === Number(currentParticipant.value?.id)
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+
     } catch (error) {
         console.error('Error fetching messages:', error);
     } finally {
@@ -93,11 +112,14 @@ onMounted(() => {
         window.Echo.channel(`lobby.${lobbyCode.value}`)
             .listen('.lobby.activity', (data) => {
 
-                console.log("data sender", data.sender, " = ", "current participant sender: ", currentParticipant.value.sender)
-                console.log("event:", data.messageType, "= event")
 
-                if (data.sender === currentParticipant.value.sender && data.messageType === "event")
-                    return;
+
+                // console.log("current participant info:", currentParticipant.value);
+
+                // console.log("pushed data: ", data.participantId, " = ", "currentParticipant id:", currentParticipant.value.id)
+
+                // if (data.messageType === "event" && data.participantId === currentParticipant.value.id)
+                //     return;
 
                 console.log('Pusher data received:', data);
                 messages.value.push({
@@ -134,7 +156,8 @@ onUnmounted(() => {
                 <span>Start the conversation!</span>
             </div>
         </div>
-        <div class="chatbox" v-else ref="chatContainer">
+
+        <div class="chatbox" v-else ref="chatContainer" :class="{ 'has-typers': activeTypersCount > 0 }">
             <template v-for="msg in messages" :key="msg.created_at || msg.timestamp">
                 <template v-if="msg.message_type === 'chat' || msg.messageType === 'chat'">
                     <chat-message :sender="msg.sender" :message="msg.message"
@@ -147,39 +170,39 @@ onUnmounted(() => {
                     </div>
                 </template>
             </template>
-            <div class="typing-area-status">
-                <!-- This tracks perfectly anywhere in your template -->
-                <div v-if="activeTypersCount > 0" class="typing-indicator">
-                    <span>Someone is typing</span>
-                    <span class="dots">...</span>
-                </div>
+        </div>
+        <div class="typing-area-status" v-if="activeTypersCount > 0">
+            <!-- This tracks perfectly anywhere in your template -->
+            <div class="typing-indicator">
+                <span>Someone is typing</span>
+                <span class="dots">...</span>
             </div>
         </div>
+
         <div>
-            <chat-input :code="lobbyCode" :sender="sender" />
+            <chat-input :code="lobbyCode" :sender="sender" :send-typing="sendTyping" />
         </div>
     </div>
 
 </template>
 
+
 <style scoped>
 .chatroom-wrapper {
-
     padding: 16px;
     border: 1px solid gray;
     border-radius: 8px;
     box-sizing: border-box;
-
-    /* added for overlay */
     position: relative;
     height: 100%;
-
 }
 
 .chatroom {
     background: none;
-    background-image: linear-gradient(255.255.255.25);
-    margin-top: 20px 0px 10px;
+    /* Fixed invalid gradient - adjusted to a standard rgba representation */
+    background-image: linear-gradient(rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+    /* Fixed invalid margin-top syntax */
+    margin: 20px 0px 10px;
     font-weight: 500;
 }
 
@@ -191,23 +214,18 @@ onUnmounted(() => {
     height: 400px;
     overflow-y: auto;
     width: 400px;
-    border: 1px solid gray;
     background: #f5e8e3;
+    /* Removed duplicate border: 1px solid gray */
     border: 1px solid #eadfdd;
-    border-radius: 8px;
+    border-radius: 8px 8px 0px 0px;
     box-shadow: 0 4px 18px rgba(80, 50, 55, 0.08);
-
     overflow-x: hidden;
-
-
 }
-
 
 .chat-loading-overlay {
     position: absolute;
     inset: 0;
     z-index: 10;
-
     display: flex;
     align-items: center;
     justify-content: center;
@@ -215,12 +233,11 @@ onUnmounted(() => {
 }
 
 .chat-empty {
-    height: 100%;
-
+    height: 400px;
+    /* Matched to chatbox height to keep container sizing uniform */
     display: flex;
     align-items: center;
     justify-content: center;
-
     text-align: center;
 }
 
@@ -236,15 +253,12 @@ onUnmounted(() => {
     color: #888;
 }
 
-
 .loading-spinner {
     width: 32px;
     height: 32px;
-
     border: 3px solid #ddd;
     border-top-color: #333;
     border-radius: 50%;
-
     animation: spin 0.7s linear infinite;
 }
 
@@ -260,63 +274,53 @@ onUnmounted(() => {
     justify-content: flex-start;
     flex-wrap: wrap;
     gap: 4px 12px;
-    /* Minimal spacing and centering */
     margin: 12px auto;
     padding: 6px 12px;
     max-width: 90%;
-
-
     background-color: rgba(243, 244, 246, 0.6);
     box-sizing: border-box;
-
 }
 
-/* The actual text ("indo has joined the lobby") */
 .system-event-message span:first-child {
     color: #4b5563;
-    /* Dark gray text */
     font-size: 0.85rem;
     font-weight: 500;
     font-style: italic;
-
     flex: 1 1 200px;
-
     overflow-wrap: break-word;
     word-break: break-word;
 }
 
-/* The timestamp */
 .system-event-message span:last-child {
     color: #9ca3af;
-    /* Muted light gray */
     font-size: 0.75rem;
     font-variant-numeric: tabular-nums;
-    /* Prevents text shifting */
     white-space: nowrap;
     margin-left: auto;
     flex-shrink: 0;
 }
 
-.typing-indicator {
-    color: #f10707;
-    font-size: 14px;
-}
-
-.dots {
-    animation: blink 1.2s infinite;
-}
-
 .typing-area-status {
-    height: 20px;
-    margin-top: 4px;
-    margin-bottom: 4px;
+    /* height: 20px; */
     padding-left: 8px;
+    width: 400px;
+    background: #f5e8e3;
+
+    border-radius: 0px 0px 8px 8px;
+
 }
 
 .typing-indicator {
     color: #f10707;
     font-size: 14px;
     font-style: italic;
+    padding-bottom: 6px;
+}
+
+.chatbox.has-typers {
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    box-shadow: none;
 }
 
 @keyframes blink {
