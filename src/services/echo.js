@@ -16,7 +16,7 @@ const echo = new Echo({
       authorize: (socketId, callback) => {
         axios
           .post(
-            "http://localhost:8080/broadcasting/auth",
+            `${import.meta.env.VITE_API_URL}/broadcasting/auth`,
             {
               socket_id: socketId,
               channel_name: channel.name,
