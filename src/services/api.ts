@@ -11,13 +11,18 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = document.cookie
+  const xsrf = document.cookie
     .split("; ")
-    .find((row) => row.startsWith("XSRF-TOKEN="))
-    ?.split("=")[1];
+    .find((row) => row.startsWith("XSRF-TOKEN="));
 
-  if (token) {
-    config.headers["X-XSRF-TOKEN"] = decodeURIComponent(token);
+  if (xsrf) {
+    const token = decodeURIComponent(xsrf.substring("XSRF-TOKEN=".length));
+
+    config.headers["X-XSRF-TOKEN"] = token;
+
+    console.log("CSRF HEADER SET");
+  } else {
+    console.log("NO XSRF-TOKEN COOKIE");
   }
 
   return config;
