@@ -1,13 +1,25 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLobbyStore } from '../stores/lobby';
 import api from '../services/api';
+
+import { useAuthStore } from '../stores/auth'
 
 const store = useLobbyStore()
 const code = ref('');
 const playername = ref('');
 const router = useRouter();
+
+
+const authStore = useAuthStore()
+
+
+onMounted(() => {
+    if (!authStore.user) {
+        router.push('/login')
+    }
+})
 
 
 const joinRoom = () => {
