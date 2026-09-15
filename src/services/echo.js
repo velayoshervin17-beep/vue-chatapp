@@ -22,13 +22,22 @@ const echo = new Echo({
               channel_name: channel.name,
             },
             {
-              withCredentials: true, // 👈 FORCES BROWSER COOKIES
+              withCredentials: false,
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+                Accept: "application/json",
+              },
             },
           )
           .then((response) => {
             callback(false, response.data);
           })
           .catch((error) => {
+            console.error(
+              "Broadcast auth failed:",
+              error.response?.status,
+              error.response?.data,
+            );
             callback(true, error);
           });
       },
@@ -37,10 +46,3 @@ const echo = new Echo({
 });
 
 export default echo;
-
-// window.Echo = new Echo({
-//   broadcaster: "pusher",
-//   key: import.meta.env.VITE_PUSHER_APP_KEY,
-//   cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-//   forceTLS: true,
-// });
