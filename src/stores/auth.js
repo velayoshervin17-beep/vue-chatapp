@@ -11,12 +11,17 @@ export const useAuthStore = defineStore(
 
     async function login(credentials) {
       // Get Sanctum's CSRF cookie first
-      const csrf = await api.get("/sanctum/csrf-cookie");
+      // const csrf = await api.get("/sanctum/csrf-cookie");
 
-      console.log("CSRF response:", csrf.status);
+      // console.log("CSRF response:", csrf.status);
 
       // Login
       const response = await api.post("/login", credentials);
+
+      const token = response.data.token;
+      localStorage.setItem("auth_token", token);
+
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       user.value = response.data.user;
 
@@ -33,7 +38,8 @@ export const useAuthStore = defineStore(
 
     async function logout() {
       await api.post("/api/logout");
-
+      localStorage.removeItem("auth_token");
+      delete axios.defaults.headers.common["Authorization"];
       user.value = null;
     }
 
