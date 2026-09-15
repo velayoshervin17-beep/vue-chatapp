@@ -16,7 +16,7 @@ export const useAuthStore = defineStore(
       // console.log("CSRF response:", csrf.status);
 
       // Login
-      const response = await api.post("/login", credentials);
+      const response = await api.post("/api/login", credentials);
 
       const token = response.data.token;
       localStorage.setItem("auth_token", token);
