@@ -42,8 +42,18 @@ const MAX_LIMIT = 255
 const message = ref('');
 const dbLength = computed(() => message.value.length);
 
+const sending = ref(false);
+
 
 function sendMessage() {
+
+    if (sending.value) {
+        return;
+    }
+
+    if (!message.value.trim()) {
+        return;
+    }
 
 
     showEmojiPicker.value = false;
@@ -58,7 +68,25 @@ function sendMessage() {
         message.value = ''; // Clear the input field after sending
     }).catch(error => {
         console.error('Error sending message:', error);
+    }).finally(() => {
+        sending.value = false;
     });
+}
+
+function handleKeydown(event) {
+    if (event.key !== 'Enter') {
+        return;
+    }
+
+    // Shift + Enter = new line
+    if (event.shiftKey) {
+        return;
+    }
+
+    // Prevent textarea from adding a newline
+    event.preventDefault();
+
+    sendMessage();
 }
 
 function toggleEmojiPicker() {
@@ -161,10 +189,12 @@ function handleInput() {
 
                 <span class="current-count">{{ dbLength }}/{{ MAX_LIMIT }} space used </span>
             </div>
-            <textarea type="text" v-model="message" @input="handleInput" :maxlength="MAX_LIMIT" ref="textarea"
-                placeholder="Type your message..." />
+            <textarea type="text" v-model="message" @input="handleInput" @keydown="handleKeydown" :maxlength="MAX_LIMIT"
+                ref="textarea" placeholder="Type your message..." />
         </div>
-        <button class="send-button" @click="sendMessage">Send</button>
+        <button class="send-button" @click="sendMessage" :disabled="sending">
+            {{ sending ? 'Sending...' : 'Send'
+            }}</button>
     </div>
 </template>
 
