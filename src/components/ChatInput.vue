@@ -51,15 +51,22 @@ function sendMessage() {
         return;
     }
 
-    if (!message.value.trim()) {
+    const text = message.value.trim();
+
+    if (!text) {
         return;
     }
 
+    sending.value = true;
+
+    message.value = '';
 
     showEmojiPicker.value = false;
 
+    //message = message.value 
+
     api.post(`/api/chat-messages/${props.code}`, {
-        message: message.value,
+        message: text,
         sender: props.sender,
         participantId: currentParticipant.value.id
 
@@ -85,6 +92,7 @@ function handleKeydown(event) {
 
     // Prevent textarea from adding a newline
     event.preventDefault();
+    event.stopPropagation();
 
     sendMessage();
 }
