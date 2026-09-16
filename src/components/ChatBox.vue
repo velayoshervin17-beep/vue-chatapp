@@ -146,7 +146,7 @@ onUnmounted(() => {
 
 <template>
     <div class="chatroom-wrapper">
-        <div class="chatroom">lobby - {{ lobbyCode }}</div>
+        <div class="chatroom"> {{ lobbyCode }}</div>
         <div v-if="messagesLoading" class="chat-loading-overlay">
             <div class="loading-spinner"></div>
         </div>
@@ -195,14 +195,18 @@ onUnmounted(() => {
     box-sizing: border-box;
     position: relative;
     height: 100%;
+    width: fit-content;
 }
+
+/* 
+added fit content for chatbox */
 
 .chatroom {
     background: none;
     /* Fixed invalid gradient - adjusted to a standard rgba representation */
     background-image: linear-gradient(rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
     /* Fixed invalid margin-top syntax */
-    margin: 20px 0px 10px;
+    margin: 0px 0px 10px;
     font-weight: 500;
 }
 

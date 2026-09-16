@@ -224,7 +224,7 @@ textarea::placeholder {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    gap: 8px;
+    /* gap: 8px; */
 }
 
 .current-count {
